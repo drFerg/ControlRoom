@@ -1,62 +1,86 @@
-var scaler = 20;
+var scaler = 40;
 var halfTrackWidth = 0.445774;
+var scaleTrackWidth = halfTrackWidth * 2 * scaler;
+var railWidth = 2;
 function TrackPiece(name, parts){
   this.name = name;
   this.parts = parts;
 }
 
 function End(originX, originY, angle){
-  console.log(angle);
-  var xpoint = Math.cos(angle * (Math.PI / 180)).toFixed(2) * halfTrackWidth;
-  var ypoint = Math.sin(angle * (Math.PI / 180)).toFixed(2) * halfTrackWidth;
-  this.x1 = scaler * (originX - xpoint);
-  this.y1 = scaler * (originY - ypoint);
-  this.angle = angle * (Math.PI / 180);
+  var xpoint = Math.cos((angle) * (Math.PI / 180)).toFixed(2) * halfTrackWidth;
+  var ypoint = Math.sin((angle) * (Math.PI / 180)).toFixed(2) * halfTrackWidth;
+  this.x1 = scaler * (Math.abs(originX) - xpoint);
+  if (originY < 0){
+    this.y1 = scaler * (Math.abs(originY) - ypoint);
+    this.y2 = scaler * (Math.abs(originY) + ypoint);
+  }
+  else {
+    this.y1 = scaler * (originY-originY*2 - ypoint);
+    this.y2 = scaler * (originY-originY*2 + ypoint);
+  }
+  
+  this.angle = (angle) * (Math.PI / 180);
   this.x2 = scaler * (originX + xpoint);
-  this.y2 = scaler * (originY + ypoint);
+  
   this.width = scaler * 0.1;
 }
 
 function Line(colour, width, x1, y1, x2, y2){
   this.colour = colour;
   this.width = scaler * width;
+  this.y1 = scaler * (y1 - y1*2);
+  this.y2 = scaler * (y2 - y2*2);
   this.x1 = scaler * x1;
-  this.y1 = scaler * y1;
   this.x2 = scaler * x2;
-  this.y2 = scaler * y2;
+  
 }
 
 function Straight(colour, width, x1, y1, x2, y2){
   console.log("Straight: " + "c: "+ colour + " w: " + width + " " + x1 + " " + y1 + " " + x2+ " " + y2);
   this.colour = colour;
   this.lineWidth = width;
+  this.y1 = scaler * (y1 - y1*2);
+  this.y2 = scaler * (y2 - y2*2);
+  this.x1 = scaler * x1;
+  this.x2 = scaler * x2;
   this.x = x1 * scaler;
-  this.y = y1- halfTrackWidth * scaler;
+  this.y = (y1 -(2*y1) - halfTrackWidth) * scaler;
   this.width = (x2 - x1) * scaler;
-  console.log(y2 + "- " + y1 + "+" + (2* halfTrackWidth));
-  this.height = (y2 - y1 + 2 * halfTrackWidth) * scaler;
+  console.log(y2 + "- " + y1 + "+" + (2 * halfTrackWidth));
+  this.height = (y2 - y1 + (2 * halfTrackWidth)) * scaler;
 }
 
 function Curve(colour, width, radius, x, y, angle, swing){
   this.colour = colour;
   this.width = width * scaler;
-  this.radius = radius * scaler;
-  this.x = x * scaler;
-  this.y = Math.abs(y) * scaler;
-  this.angle = angle * (Math.PI / 180);
-  this.swing = swing * (Math.PI / 180);
-  this.ccw = (y < 0 ? true : false);
+  this.radius = Math.abs(radius) * scaler;
+  this.x = (x) * scaler;
+  if (y < 0){
+    this.y = (y + 2 * Math.abs(y)) * scaler;
+  }
+  else{
+    this.y = (y - 2 * y) * scaler;
+  }
+  this.angle = (angle - 90) * (Math.PI / 180);
+  this.endAngle = (angle + swing - 90) * (Math.PI / 180);
+  this.ccw = (y < 0 ? false : false);
 }
 
 function Arc(colour, width, radius, x, y, angle, swing){
   this.colour = colour;
   this.width = width * scaler;
   this.radius = Math.abs(radius) * scaler;
-  this.x = x * scaler;
-  this.y = Math.abs(y) * scaler;
-  this.angle = -angle + 90 * (Math.PI / 180);
-  this.swing = -swing * (Math.PI / 180);
-  this.ccw = (y < 0 ? true : false);
+  this.x = (x) * scaler;
+  if (y < 0){
+    this.y = (y + 2 * Math.abs(y)) * scaler;
+  }
+  else{
+    this.y = (y - 2 * y) * scaler;
+  }
+  this.angle = (angle - 90) * (Math.PI / 180);
+  this.endAngle = (angle + swing - 90) * (Math.PI / 180);
+  this.ccw = (y < 0 ? false : false);
 }
 
 function Path(text){
@@ -76,6 +100,151 @@ function State(group, drawn){
   this.drawn = drawn;
 }
 
+
+function drawPart(state, part, i){
+  var width = 0;
+  var height = 0;
+  if (part instanceof Line){
+    width = part.x2 - part.x1;
+    height = part.y2 - part.y1;
+    console.log("Got Line: " + part.x1 + " " + part.y1 + " " + part.x2 + " " + part.y2);
+    state.drawn[i] = new Kinetic.Line({
+      points: [part.x1, part.y1, part.x2, part.y2],
+      stroke: 'black',
+      strokeWidth: part.width,
+      lineCap: 'square',
+      lineJoin: 'miter'
+    });
+    state.group.add(state.drawn[i]);
+  }
+  else if (part instanceof End){
+    console.log("Got End: " + part.x1 + " " + part.y1 + " " + part.x2 + " " + part.y2);
+    state.drawn[i] = new Kinetic.Line({
+      points: [part.x1, part.y1, part.x2, part.y2],
+      stroke: 'red',
+      strokeWidth: part.width,
+      lineCap: 'square',
+      lineJoin: 'miter'
+    });
+    state.group.add(state.drawn[i]);
+  }
+  else if (part instanceof Straight){
+    width = part.x2 - part.x1;
+    height = part.y2 - part.y1;
+    var component = 0;
+    state.drawn[i] =  new Array();
+    console.log("Got Straight: " + part.x + " " + part.y + " "+ part.width + " " + part.height);
+    /* Draw visible track underneath */
+    state.drawn[i][component] = new Kinetic.Line({
+      points: [part.x1+10, part.y1, part.x2-10, part.y2],
+      stroke:'grey',
+      opacity: 0.2,
+      strokeWidth: scaleTrackWidth,
+      lineCap: 'square',
+      lineJoin: 'miter'
+    });
+    state.group.add(state.drawn[i][component++]);
+    /* Draw lines */
+    for (var j = 1; j < part.width/5; j++){
+      state.drawn[i][component] = new Kinetic.Line({
+        points: [part.x1 + (j*5), part.y1 - (halfTrackWidth*scaler) +5, part.x2 - (part.width - j*5), part.y2 + (halfTrackWidth*scaler) - 5],
+        stroke: 'brown',
+        strokeWidth: 3,
+        lineCap: 'square',
+        lineJoin: 'miter'
+      });
+      state.group.add(state.drawn[i][component++]);
+    } 
+    /* Draw top rail */
+    state.drawn[i][component] = new Kinetic.Line({
+        points: [part.x1, part.y1 + (halfTrackWidth/2*scaler), part.x2 , part.y2 + (halfTrackWidth/2*scaler)],
+        stroke: 'silver',
+        strokeWidth: railWidth,
+        lineCap: 'square',
+        lineJoin: 'miter'
+      });
+    state.group.add(state.drawn[i][component++]);
+    /* Draw bottom rail */
+    state.drawn[i][component] = new Kinetic.Line({
+        points: [part.x1, part.y1 - (halfTrackWidth/2*scaler), part.x2, part.y2 - (halfTrackWidth/2*scaler)],
+        stroke: 'silver',
+        strokeWidth: railWidth,
+        lineCap: 'square',
+        lineJoin: 'miter'
+      });
+    state.group.add(state.drawn[i][component++]);
+    /* Draw invisible track to grab */
+    state.drawn[i][component] = new Kinetic.Line({
+      points: [part.x1+10, part.y1, part.x2-10, part.y2],
+      stroke:'rgba(1, 1, 1, 0)',
+      strokeWidth: scaleTrackWidth,
+      lineCap: 'square',
+      lineJoin: 'miter'
+    });
+    state.group.add(state.drawn[i][component++]);
+  }
+  else if (part instanceof Curve){
+    console.log("Got Curve: " + part.radius + " " + part.x + " " + part.y + " " + part.angle + " " + part.endAngle);
+    var component = 0;
+    state.drawn[i] =  new Array();
+    state.drawn[i][component] = new Kinetic.Shape({
+      strokeWidth:scaleTrackWidth,
+      stroke:'grey',
+      opacity: 0.2,
+      sceneFunc: function(context) {
+        context.beginPath();
+        context.arc(part.x, part.y, part.radius, part.angle, part.endAngle, part.ccw);
+        context.strokeShape(this);
+      },
+    });
+    state.group.add(state.drawn[i][component++]);
+
+    state.drawn[i][component] = new Kinetic.Shape({
+      strokeWidth:railWidth,
+      stroke:'silver',
+      sceneFunc: function(context) {
+        context.beginPath();
+        context.arc(part.x, part.y, part.radius - (halfTrackWidth/2*scaler), part.angle, part.endAngle, part.ccw);
+        context.strokeShape(this);
+      },
+    });
+    state.group.add(state.drawn[i][component++]);
+
+    state.drawn[i][component] = new Kinetic.Shape({
+      strokeWidth:railWidth,
+      stroke:'silver',
+      sceneFunc: function(context) {
+        context.beginPath();
+        context.arc(part.x, part.y, part.radius + (halfTrackWidth/2*scaler), part.angle, part.endAngle, part.ccw);
+        context.strokeShape(this);
+      },
+    });
+    state.group.add(state.drawn[i][component++]);
+
+  }
+  else if (part instanceof Arc){
+    console.log("Got Arc: " + part.radius + " " + part.x + " " + part.y + " " + part.angle + " " + part.endAngle);
+    state.drawn[i] = new Kinetic.Shape({
+      strokeWidth:part.width,
+      stroke:'grey',
+      sceneFunc: function(context) {
+        context.beginPath();
+        context.arc(part.x, part.y, part.radius, part.angle, part.endAngle, part.ccw);
+        context.strokeShape(this);
+      },
+    });
+    state.group.add(state.drawn[i]);
+  }
+  if (state.group.width() < width){
+    state.group.width(width);
+    state.group.offsetX(width/2);
+  }
+  if (state.group.height() < height){
+    state.group.height(height);
+    state.group.offsetY(height/2);
+  }
+}
+
 function processPiece(trackPiece){
   var parts = trackPiece.parts;
   console.log("there are " + parts.length + " parts");
@@ -87,87 +256,8 @@ function processPiece(trackPiece){
   });
 
   var state = new State(group, new Array());
-
   for(var i = 0; i <= parts.length; i++){
-    if (parts[i] instanceof Line){
-      console.log("Got Line: " + parts[i].x1 + " " + parts[i].y1 + " " + parts[i].x2 + " " + parts[i].y2);
-      state.drawn[i] = new Kinetic.Line({
-        points: [parts[i].x1, parts[i].y1, parts[i].x2, parts[i].y2],
-        stroke: 'grey',
-        strokeWidth: parts[i].width,
-        lineCap: 'square',
-        lineJoin: 'miter'
-      });
-      state.group.add(state.drawn[i]);
-    }
-    else if (parts[i] instanceof End){
-      console.log("Got End: " + parts[i].x1 + " " + parts[i].y1 + " " + parts[i].x2 + " " + parts[i].y2);
-      state.drawn[i] = new Kinetic.Line({
-        points: [parts[i].x1, parts[i].y1, parts[i].x2, parts[i].y2],
-        stroke: 'red',
-        strokeWidth: parts[i].width,
-        lineCap: 'square',
-        lineJoin: 'miter'
-      });
-      state.group.add(state.drawn[i]);
-    }
-    else if (parts[i] instanceof Straight){
-      console.log("Got Straight: " + parts[i].x + " " + parts[i].y);
-      state.drawn[i] = new Kinetic.Rect({
-        x: parts[i].x,
-        y: parts[i].y,
-        width: parts[i].width,
-        height: parts[i].height,
-      });
-      state.group.add(state.drawn[i]);
-    }
-    else if (parts[i] instanceof Curve){
-      console.log("Got Curve: " + parts[i].radius + " " + parts[i].x + " " + parts[i].y + " " + parts[i].angle + " " + parts[i].swing);
-      var x = parts[i].x;
-      var y = parts[i].y;
-      var radius = parts[i].radius;
-      var angle = parts[i].angle;
-      var swing = parts[i].swing;
-      var width = parts[i].width;
-      var ccw = parts[i].ccw;
-      state.drawn[i] = new Kinetic.Shape({
-        sceneFunc: function(context) {
-          context.beginPath();
-          context.arc(x, y, radius, angle, swing, ccw);
-          context.lineWidth = width;
-          context.strokeStyle = 'grey';
-          context.stroke();
-          //context.closePath();
-        },
-      });
-      state.group.add(state.drawn[i]);
-      layer.add(state.group);
-      stage.add(layer);
-    }
-    else if (parts[i] instanceof Arc){
-      console.log("Got Arc: " + parts[i].radius + " " + parts[i].x + " " + parts[i].y + " " + parts[i].angle + " " + parts[i].swing);
-      var x = parts[i].x;
-      var y = parts[i].y;
-      var radius = parts[i].radius;
-      var angle = parts[i].angle;
-      var swing = parts[i].swing;
-      var width = parts[i].width;
-      var ccw = parts[i].ccw;
-      state.drawn[i] = new Kinetic.Shape({
-        sceneFunc: function(context) {
-          context.beginPath();
-          context.arc(x, y, radius, angle, swing, ccw);
-          context.lineWidth = width;
-          this.stroke(context);
-          context.stroke();
-          //context.closePath();
-        },
-        stroke:"red"
-      });
-      state.group.add(state.drawn[i]);
-      layer.add(state.group);
-      stage.add(layer);
-    }
+    drawPart(state, parts[i], i);
   }
   state.group.on('mouseover', function() {
         document.body.style.cursor = 'pointer';
@@ -175,6 +265,16 @@ function processPiece(trackPiece){
   state.group.on('mouseout', function() {
     document.body.style.cursor = 'default';
   });
+  state.group.on('dblclick', function(){
+    var tween = new Kinetic.Tween({
+        node: this, 
+        duration: 1,
+        rotation: this.rotation() + 45,
+        opacity: 1,
+      });
+    tween.play();
+    //this.rotation(this.rotation()+ 45);
+    });
   layer.add(state.group);
   stage.add(layer);
   return state;
@@ -183,70 +283,13 @@ function processPiece(trackPiece){
 
 var stage = new Kinetic.Stage({
   container: 'container',
-  width: 1024,
-  height: 900
+  width: 1920,
+  height: 1080
 });
 
 var layer = new Kinetic.Layer();
 
-var customShape = new Kinetic.Shape({
-      x:200,
-    y:200,
-sceneFunc: function(context) {
-    context.beginPath();
-    context.arc(178.99422, 0, 170.07874, 1.5707963267948966, -0.7853981633974483, false);
-    context.stroke();
-    context.closePath();
-    //context.fillStrokeShape(this);
-  }
-});
-layer.add(customShape);
-stage.add(layer);
-customShape = new Kinetic.Shape({
-      x:200,
-    y:200,
-sceneFunc: function(context) {
-    context.beginPath();
-    context.arc(161.16326, 0, 170.07874, 1.5707963267948966, -0.7853981633974483, false);
-    context.stroke();
-    context.closePath();
-    //context.fillStrokeShape(this);
-  }
-});
-layer.add(customShape);
-stage.add(layer);
 
-customShape = new Kinetic.Shape({
-      x:200,
-    y:200,
-sceneFunc: function(context) {
-    context.beginPath();
-    context.arc(41.16326, 0 - 169.16326, 170.07874 + 169.16326, 0, 6.283185307179586, false);
-    context.stroke();
-    context.closePath();
-    //context.fillStrokeShape(this);
-  }
-});
-layer.add(customShape);
-stage.add(layer);
-
-var ustomShape = new Kinetic.Shape({
-  x: 5,
-  y: 10,
-  fill: 'red',
-  // a Kinetic.Canvas renderer is passed into the drawFunc function
-  drawFunc: function(context) {
-    context.beginPath();
-    context.moveTo(100, 50);
-    context.lineTo(420, 80);
-    context.quadraticCurveTo(300, 100, 260, 170);
-    context.stroke();
-    context.closePath();
-    //context.fillStrokeShape(this);
-  }
-});
-layer.add(ustomShape);
-stage.add(layer);
 // Check for the various File API support.
 if (window.File && window.FileReader && window.FileList && window.Blob) {
   // Great success! All the File APIs are supported.
@@ -292,3 +335,4 @@ function handleFileSelect(evt) {
   }
 
   document.getElementById('files').addEventListener('change', handleFileSelect, false);
+  /*'rgba(1, 1, 1, 0)'*/
