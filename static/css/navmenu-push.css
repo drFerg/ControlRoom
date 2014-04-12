@@ -12,6 +12,7 @@ body {
 }
 .popover {
   z-index: 5000;
+
 }
 
 @media (min-width: 0) {

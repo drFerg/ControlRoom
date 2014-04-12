@@ -1,4 +1,4 @@
-var scaler = 40;
+var scaler = 20;
 var halfTrackWidth = 0.445774;
 var scaleTrackWidth = halfTrackWidth * 2 * scaler;
 var railWidth = 2;
@@ -37,7 +37,7 @@ var popOverSettings = {
     content: function() {
     return "<div id='test'>"+ $(this).html() + "</div>";
     }
-}
+};
 
 
 
@@ -337,7 +337,6 @@ function handleFileSelect(evt) {
     var reader = new FileReader();
     reader.onload = (function(theFile) {
       return function(e) {
-        // Render thumbnail.
         alert(e.target.result);
         res = trackParser.parse(e.target.result);
         var name = res.name;
@@ -351,7 +350,7 @@ function handleFileSelect(evt) {
           console.log("packName " + packName);
           for (var i = 0; i < trackPacks[pack].blocks.length; i++){
             if (trackPacks[pack].blocks[i] instanceof TrackPiece){
-              console.log(trackPacks[pack].blocks[i].name + ": " + trackPacks[pack].blocks[i].parts.length); 
+              console.log(trackPacks[pack].blocks[i].name + ": " + trackPacks[pack].blocks[i].parts.length);
           }
         }
       }
@@ -362,19 +361,20 @@ function handleFileSelect(evt) {
   }
   //$(".track").popover();
   $('body').popover(popOverSettings).on('shown.bs.popover', function () {
-  ministage = new Kinetic.Stage({
-    container: 'test',
-    width: 200,
-    height: 200
-  });
-  minigroup.destroyChildren();
-  ministate = new State(minigroup, []);
-  console.log($(".test").html());
-    var parts = findTrack($(".test").html()).parts;
-    for(var i = 0; i <= parts.length; i++){
-      ministate.i = i;
-      drawPart(ministate, parts[i]);
-    }
+    var track = $("#test").html();
+    ministage = new Kinetic.Stage({
+      container: 'test',
+      width: 200,
+      height: 200
+    });
+    minigroup.destroyChildren();
+    ministate = new State(minigroup, []);
+    console.log(track);
+      var parts = findTrack(track).parts;
+      for(var i = 0; i <= parts.length; i++){
+        ministate.i = i;
+        drawPart(ministate, parts[i]);
+      }
 
     minilayer.clear();
     ministage.clear();
@@ -408,7 +408,7 @@ $( document ).ready(function() {
 
 
 
-$('body').popover(popOverSettings);
+//$('body').popover(popOverSettings);
 
 
 });
