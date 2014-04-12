@@ -1,21 +1,136 @@
-<!DOCTYPE HTML>
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <style>
-      body {
-        margin: 0px;
-        padding: 0px;
-      }
-    </style>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="shortcut icon" href="../../assets/ico/favicon.ico">
+
+    <title>Control Room</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="./static/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./static/css/jasny-bootstrap.min.css" rel="stylesheet">
+    <!-- Custom styles for this template -->
+    <link href="./static/css/dashboard.css" rel="stylesheet">
+    <link href="./static/css/navmenu-push.css" rel="stylesheet">
+    <!-- Just for debugging purposes. Don't actually copy this line! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
   </head>
-  <body>    
-    <input type="file" id="files" name="files[]" multiple /> <output id="list"></output>
+
+  <body>
+
+    <div class="navmenu navmenu-default navmenu-fixed-left offcanvas">
+      <a class="navmenu-brand" href="#">Control Room</a>
+      <ul class="nav navmenu-nav">
+        <li><a href="">Home</a></li>
+        <li class="active"><a href="">Layout</a></li>
+        <li><a href="">Trains</a></li>
+        <li><a href="">Settings</a></li>
+      </ul>
+      <ul class="nav navmenu-nav">
+        <li><a href="#">Link</a></li>
+        <li><a href="#">Link</a></li>
+        <li><a href="#">Link</a></li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
+          <ul class="dropdown-menu navmenu-nav">
+            <li><a href="#">Action</a></li>
+            <li><a href="#">Another action</a></li>
+            <li><a href="#">Something else here</a></li>
+            <li class="divider"></li>
+            <li class="dropdown-header">Nav header</li>
+            <li><a href="#">Separated link</a></li>
+            <li><a href="#">One more separated link</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+
+
+    <div class="navbar navbar-default navbar-fixed-top">
+      <div class="col-sm-8 col-md-12 main">
+        <div class="row" id="row">
+          <button type="button" class="btn btn-default" data-toggle="offcanvas" data-target=".navmenu" data-canvas="body">
+          <span class="glyphicon glyphicon-arrow-right"></span>
+          </button>
+          <div class="fileinput fileinput-new" data-provides="fileinput">
+            <span class="btn btn-primary btn-file"><span class="fileinput-new">Select file</span><span class="fileinput-exists">Change</span><input id="upTrackFile" type="file" name="..."></span>
+            <span class="fileinput-filename"></span>
+            <a href="#" class="close fileinput-exists" data-dismiss="fileinput" style="float: none">&times;</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-2">
+            <div class="panel panel-default" id="result">
+              <div class="panel-heading"><h4 class="panel-title">Tracks</h4></div>
+            </div>
+            </div>
+          <div class="col-md-8">
+            <div class="panel panel-default">
+              <div class="panel-heading"><h4 class="panel-title">Layout</h4></div>
+              <div class="panel-body" id="container"></div>
+            </div>
+          </div>
+          <div class="col-md-2">
+          <div class="panel panel-default" id="temp"></div>
+          <div>
+        </div>
+      </div>
+    </div>  
     
-    <div id="container"></div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
     <script src="http://d3lp1msu2r81bx.cloudfront.net/kjs/js/lib/kinetic-v5.0.2.min.js"></script>
-    <script src="./pegjs-runtime-0.3.min.js"></script>
+    <script src="./peg-0.8.0.min.js"></script>
     <script src="trackParser.js"></script>
     <script defer="defer" src="./track.js"></script>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="./static/js/jquery-2.1.0.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="./static/js/bootstrap.js"></script>
+    <script src="./static/js/jasny-bootstrap.js"></script>
+    <script src="./static/js/jquery.loadTemplate-1.4.3.min.js"></script>
+    <script src="http://www.jsviews.com/download/jsviews.js"></script>
+    <script id="packlistTmpl" type="text/x-jsrender">
+    <div class="panel-heading"><h2 class="panel-title">Track: {{:name}}</h2></div>
+    <div class="panel-group" id="accordion">
+    {{for packs}}
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4 class="panel-title">
+            <a data-toggle="collapse" data-parent="#accordion" href="#collapse{{:url}}">
+            {{:name}}
+            </a>
+            <span class="badge pull-right">{{:count}}</span>
+          </h4>
+        </div>
+        <div id="collapse{{:url}}" class="panel-collapse collapse out">
+          <div id="popoverbody" class="panel-body">
+            <div class="list-group">
+            {{for blocks}}
+              {{if name}}
+                <a href="#" class="list-group-item track" rel="popover" data-container="body" data-toggle="popover" data-placement="right" >{{:name}}</a>
+              {{/if}}
+            {{/for}}
+            </div>
+          </div>
+        </div>
+      </div>
+    {{/for}}
+    </div>
+    </script>
+
 
   </body>
 </html>

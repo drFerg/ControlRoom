@@ -2,6 +2,46 @@ var scaler = 40;
 var halfTrackWidth = 0.445774;
 var scaleTrackWidth = halfTrackWidth * 2 * scaler;
 var railWidth = 2;
+var trackPacks = [];
+var ministage = [];
+var minilayer = new Kinetic.Layer();
+var minigroup = new Kinetic.Group({
+    x:100,
+    y:100,
+    rotation:0,
+    draggable:true
+  });
+var ministate = new State(minigroup, []);
+
+function findTrack(name){
+  for (var pack = 0; pack < trackPacks.length; pack++){
+    //console.log("packName " + packName);
+    for (var i = 0; i < trackPacks[pack].blocks.length; i++){
+      if (trackPacks[pack].blocks[i] instanceof TrackPiece){
+        if (trackPacks[pack].blocks[i].name.match(name)){
+          return trackPacks[pack].blocks[i];
+        }
+      }
+    }
+  }
+  return null;
+}
+
+
+var popOverSettings = {
+    placement: 'right',
+    container: 'body',
+    html: true,
+    selector: '[rel="popover"]',
+    trigger:'hover',
+    content: function() {
+    return "<div id='test'>"+ $(this).html() + "</div>";
+    }
+}
+
+
+
+
 function TrackPiece(name, parts){
   this.name = name;
   this.parts = parts;
@@ -37,7 +77,6 @@ function Line(colour, width, x1, y1, x2, y2){
 }
 
 function Straight(colour, width, x1, y1, x2, y2){
-  console.log("Straight: " + "c: "+ colour + " w: " + width + " " + x1 + " " + y1 + " " + x2+ " " + y2);
   this.colour = colour;
   this.lineWidth = width;
   this.y1 = scaler * (y1 - y1*2);
@@ -47,7 +86,6 @@ function Straight(colour, width, x1, y1, x2, y2){
   this.x = x1 * scaler;
   this.y = (y1 -(2*y1) - halfTrackWidth) * scaler;
   this.width = (x2 - x1) * scaler;
-  console.log(y2 + "- " + y1 + "+" + (2 * halfTrackWidth));
   this.height = (y2 - y1 + (2 * halfTrackWidth)) * scaler;
 }
 
@@ -98,10 +136,12 @@ function endsWith(str, suffix) {
 function State(group, drawn){
   this.group = group;
   this.drawn = drawn;
+  this.i = 0;
 }
 
 
-function drawPart(state, part, i){
+function drawPart(state, part){
+  var i = state.i;
   var width = 0;
   var height = 0;
   if (part instanceof Line){
@@ -154,7 +194,7 @@ function drawPart(state, part, i){
         lineJoin: 'miter'
       });
       state.group.add(state.drawn[i][component++]);
-    } 
+    }
     /* Draw top rail */
     state.drawn[i][component] = new Kinetic.Line({
         points: [part.x1, part.y1 + (halfTrackWidth/2*scaler), part.x2 , part.y2 + (halfTrackWidth/2*scaler)],
@@ -186,7 +226,7 @@ function drawPart(state, part, i){
   else if (part instanceof Curve){
     console.log("Got Curve: " + part.radius + " " + part.x + " " + part.y + " " + part.angle + " " + part.endAngle);
     var component = 0;
-    state.drawn[i] =  new Array();
+    state.drawn[i] = [];
     state.drawn[i][component] = new Kinetic.Shape({
       strokeWidth:scaleTrackWidth,
       stroke:'grey',
@@ -243,6 +283,7 @@ function drawPart(state, part, i){
     state.group.height(height);
     state.group.offsetY(height/2);
   }
+  state.i = i;
 }
 
 function processPiece(trackPiece){
@@ -255,7 +296,7 @@ function processPiece(trackPiece){
     draggable:true
   });
 
-  var state = new State(group, new Array());
+  var state = new State(group, []);
   for(var i = 0; i <= parts.length; i++){
     drawPart(state, parts[i], i);
   }
@@ -267,7 +308,7 @@ function processPiece(trackPiece){
   });
   state.group.on('dblclick', function(){
     var tween = new Kinetic.Tween({
-        node: this, 
+        node: this,
         duration: 1,
         rotation: this.rotation() + 45,
         opacity: 1,
@@ -280,59 +321,94 @@ function processPiece(trackPiece){
   return state;
 }
 
+function handleFileSelect(evt) {
+  var files = evt.target.files; // FileList object
 
-var stage = new Kinetic.Stage({
-  container: 'container',
-  width: 1920,
-  height: 1080
+  // files is a FileList of File objects. List some properties.
+  var output = [];
+  for (var i = 0; f = files[i]; i++) {
+    if (!endsWith(f.name,'.xtp')) {
+      alert("Not a valid track file, must end in .xtp");
+      continue;
+    }
+
+    console.log(f.name);
+
+    var reader = new FileReader();
+    reader.onload = (function(theFile) {
+      return function(e) {
+        // Render thumbnail.
+        alert(e.target.result);
+        res = trackParser.parse(e.target.result);
+        var name = res.name;
+        console.log(name);
+        var template = $.templates("#packlistTmpl");
+        template.link("#result", res);
+
+        trackPacks = res.packs;
+        for (var pack = 0; pack < trackPacks.length; pack++){
+          var packName = trackPacks[pack].name;
+          console.log("packName " + packName);
+          for (var i = 0; i < trackPacks[pack].blocks.length; i++){
+            if (trackPacks[pack].blocks[i] instanceof TrackPiece){
+              console.log(trackPacks[pack].blocks[i].name + ": " + trackPacks[pack].blocks[i].parts.length); 
+          }
+        }
+      }
+    };
+  })(f);
+  reader.readAsText(f);
+
+  }
+  //$(".track").popover();
+  $('body').popover(popOverSettings).on('shown.bs.popover', function () {
+  ministage = new Kinetic.Stage({
+    container: 'test',
+    width: 200,
+    height: 200
+  });
+  minigroup.destroyChildren();
+  ministate = new State(minigroup, []);
+  console.log($(".test").html());
+    var parts = findTrack($(".test").html()).parts;
+    for(var i = 0; i <= parts.length; i++){
+      ministate.i = i;
+      drawPart(ministate, parts[i]);
+    }
+
+    minilayer.clear();
+    ministage.clear();
+    minilayer.add(ministate.group);
+    ministage.add(minilayer);
 });
-
-var layer = new Kinetic.Layer();
-
-
-// Check for the various File API support.
-if (window.File && window.FileReader && window.FileList && window.Blob) {
-  // Great success! All the File APIs are supported.
-} else {
-  alert('The File APIs are not fully supported in this browser.');
 }
 
-var pieces = new Array();
 
-function handleFileSelect(evt) {
-    var files = evt.target.files; // FileList object
+/* RUNS WHEN DOCUMENT IS READY */
+$( document ).ready(function() {
+  var stage = new Kinetic.Stage({
+    container: 'container',
+    width: 1920,
+    height: 1080
+  });
 
-    // files is a FileList of File objects. List some properties.
-    var output = [];
-    for (var i = 0, f; f = files[i]; i++) {
-      if (!endsWith(f.name,'.xtp')) {
-        alert("Not a valid track file, must end in .xtp");
-        continue;
-      }
+  var layer = new Kinetic.Layer();
 
-      console.log(f.name)
 
-      var reader = new FileReader();
-      reader.onload = (function(theFile) {
-        return function(e) {
-          // Render thumbnail.
-          alert(e.target.result);
-          res = trackParser.parse(e.target.result);
-          for (var i = 0; i < res.length; i++){
-            if (res[i] instanceof TrackPiece){
-              console.log(res[i].name + ": " + res[i].parts.length);
-              pieces[i] = processPiece(res[i]);
-            }
-            else console.log(res[i].comment);
-            
-          }
-        };
-      })(f);
-      reader.readAsText(f);
-
-    }
-    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+  // Check for the various File API support.
+  if (window.File && window.FileReader && window.FileList && window.Blob) {
+    // Great success! All the File APIs are supported.
+  } else {
+    alert('The File APIs are not fully supported in this browser.');
   }
 
-  document.getElementById('files').addEventListener('change', handleFileSelect, false);
-  /*'rgba(1, 1, 1, 0)'*/
+  var pieces = [];
+  document.getElementById('upTrackFile').addEventListener('change', handleFileSelect, false);
+    /*'rgba(1, 1, 1, 0)'*/
+
+
+
+$('body').popover(popOverSettings);
+
+
+});
