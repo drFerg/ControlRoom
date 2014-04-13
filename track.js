@@ -3,6 +3,10 @@ var halfTrackWidth = 0.445774;
 var scaleTrackWidth = halfTrackWidth * 2 * scaler;
 var railWidth = 2;
 var trackPacks = [];
+
+var stage = [];
+var layer = new Kinetic.Layer();
+var drawnParts = [];
 var ministage = [];
 var minilayer = new Kinetic.Layer();
 var minigroup = new Kinetic.Group({
@@ -359,7 +363,7 @@ function handleFileSelect(evt) {
   reader.readAsText(f);
 
   }
-  //$(".track").popover();
+
   $('body').popover(popOverSettings).on('shown.bs.popover', function () {
     var track = $("#test").html();
     ministage = new Kinetic.Stage({
@@ -370,14 +374,13 @@ function handleFileSelect(evt) {
     minigroup.destroyChildren();
     ministate = new State(minigroup, []);
     console.log(track);
-      var parts = findTrack(track).parts;
-      for(var i = 0; i <= parts.length; i++){
+    var parts = findTrack(track).parts;
+    for(var i = 0; i <= parts.length; i++){
         ministate.i = i;
         drawPart(ministate, parts[i]);
       }
 
     minilayer.clear();
-    ministage.clear();
     minilayer.add(ministate.group);
     ministage.add(minilayer);
 });
@@ -386,14 +389,19 @@ function handleFileSelect(evt) {
 
 /* RUNS WHEN DOCUMENT IS READY */
 $( document ).ready(function() {
-  var stage = new Kinetic.Stage({
+  stage = new Kinetic.Stage({
     container: 'container',
     width: 1920,
     height: 1080
   });
+  /* Attach click handler for all tracks that will be loaded later on */
+  $(document).on('click', '.track', function(){
+    var trackName = $(this).html();
+    console.log(trackName);
+    track = findTrack(trackName);
+    drawnParts += processPiece(track);
 
-  var layer = new Kinetic.Layer();
-
+  });
 
   // Check for the various File API support.
   if (window.File && window.FileReader && window.FileList && window.Blob) {
